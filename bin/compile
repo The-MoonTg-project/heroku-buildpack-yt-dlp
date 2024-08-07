@@ -5,9 +5,28 @@ BUILD_DIR=${1:-}
 cd $BUILD_DIR
 mkdir -p vendor/yt
 cd vendor/yt
-curl --location https://github.com/yt-dlp/yt-dlp/releases/download/2022.02.04/yt-dlp -o yt-dlp
-echo '91c667e0521951198e0fe348cad30b8f9c6b9b74  yt-dlp' > yt-dlp.sha
-sha1sum --check yt-dlp.sha
+
+curl --location https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
+curl --location https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS -o SHA2-256SUMS
+
+while IFS= read -r line
+do
+  if [[ $line == *"yt-dlp"* ]]
+  then
+    sha256=$(echo $line)
+    echo $sha256 > yt-dlp.sha
+    break
+  fi
+done < "SHA2-256SUMS"
+rm SHA2-256SUMS
+
+sha256sum -c yt-dlp.sha
+if [ $? -ne 0 ]; then
+  echo "sha256sum mismatch"
+  exit 1
+fi
+
+rm yt-dlp.sha
 chmod a+rx yt-dlp
 ./yt-dlp --version
 PROFILE_PATH="$BUILD_DIR/.profile.d/yt-dlp.sh"
